@@ -6,9 +6,10 @@ K = number of patches actually kept (after masking)
 D = embedding dimension
 """
 
-import torch 
+import torch
 from torch import nn
 from torch.nn import functional as F
+
 
 def get_1d_pos_embed(embedding_dimension: int, positions: torch.Tensor) -> torch.Tensor:
     """Calculate sin, cos positional embeddings at two 'speeds' for a list of 1D positions."""
@@ -21,7 +22,10 @@ def get_1d_pos_embed(embedding_dimension: int, positions: torch.Tensor) -> torch
     return torch.cat([torch.sin(angles), torch.cos(angles)], dim=1) # [M, embedding_dimension]
 
 def get_2d_pos_embed(embedding_dimension: int, grid_size: int) -> torch.Tensor:
-    """Build positional embeddigs for a square grid of patches via the 1D sin, cos embeddings of each patches row and column."""
+    """
+    Build positional embeddigs for a square grid of patches via the 1D sin, 
+        cos embeddings of each patches row and column.
+    """
     
     rows, cols, = torch.meshgrid(
         torch.arange(grid_size), torch.arange(grid_size), indexing="ij")
@@ -41,7 +45,8 @@ def gather_tokens (x: torch.Tensor, idx: torch.Tensor) -> torch.Tensor:
         tensor of shape [B, K, D] containing the selected tokens.
     """
 
-    idx = idx.unsqueeze(-1).expand(-1, -1, x.size(-1)) # [B, K, D] - gather neex idx to have same num of dims as x.
+    # [B, K, D] - gather neex idx to have same num of dims as x.
+    idx = idx.unsqueeze(-1).expand(-1, -1, x.size(-1))
     return torch.gather(x, dim=1, index=idx) # [B, K, D]
 
 class PatchEmbedding(nn.Module):
@@ -93,7 +98,8 @@ class Block(nn.Module):
         self.attention = Attention(embedding_dimension, num_heads)
         self.norm2 = nn.LayerNorm(embedding_dimension)
         hidden = int(embedding_dimension * mlp_ratio)
-        self.mlp = nn.Sequential(nn.Linear(embedding_dimension, hidden), nn.GELU(), nn.Linear(hidden, embedding_dimension))
+        self.mlp = nn.Sequential(nn.Linear(embedding_dimension, hidden), nn.GELU(), 
+                                 nn.Linear(hidden, embedding_dimension))
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass, returns tokens with the same shape as x, [B, N, D]."""
