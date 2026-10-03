@@ -1,6 +1,8 @@
 # jepa-playground
 This repo serves as a playground for me to explore and implement a variety of jepa variants in an attempt to understand.
 
+All code handwritten by refering to the papers below and their associated code bases.
+
 ## The JEPA Family
 
 ### 1. I-JEPA — Image JEPA
@@ -62,7 +64,7 @@ uv run *
 
 ---
 
-## Resources
+## Other Resources
 
 - [LeCun's paper on world models](https://openreview.net/pdf?id=BZ5a1r-kVsf)
 - [I-JEPA blog post](https://ai.meta.com/blog/yann-lecun-ai-model-i-jepa/)
