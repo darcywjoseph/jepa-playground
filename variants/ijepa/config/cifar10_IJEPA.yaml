@@ -1,0 +1,39 @@
+# I-JEPA using CIFAR-10 dataset.
+
+data:
+  data_dir: data
+  batch_size: 256 
+  crop_scale: [0.3, 1.0]
+  num_workers: 4
+  fake_data: false
+
+mask:
+  num_target_blocks: 4
+  target_scale: [0.15, 0.2]
+  target_aspect_ratio: [0.75, 1.5]
+  context_scale: [0.85, 1.0]
+  min_keep: 4
+
+model:
+  image_size: 32
+  patch_size: 4
+  embedding_dimension: 192
+  depth: 6
+  num_heads: 3
+  predictor_dimension: 96
+  predictor_depth: 4
+
+optimization:
+  epochs: 300
+  warmup_fraction: 0.05
+  start_lr: 1.0e-4
+  lr: 1.0e-3
+  final_lr: 1.0e-6 
+  weight_decay: 0.04
+  final_weight_decay: 0.4
+  ema: [0.996, 1.0]
+  max_steps: null 
+
+logging:
+  checkpoint: checkpoints/ijepa_cifar10.pt
+  log_every: 50

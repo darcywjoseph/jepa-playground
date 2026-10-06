@@ -8,10 +8,16 @@ dependencies = [
     "torchvision>=0.17",
     "numpy>=1.26",
     "matplotlib>=3.8",
+    "pyyaml>=6.0.3",
 ]
 
 [dependency-groups]
-dev = ["ruff>=0.6", "mypy>=1.10", "pytest>=8.0"]
+dev = [
+    "ruff>=0.6",
+    "mypy>=1.10",
+    "pytest>=8.0",
+    "types-pyyaml>=6.0.12.20260906",
+]
 
 [tool.ruff]
 line-length = 120
