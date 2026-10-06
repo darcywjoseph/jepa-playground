@@ -1,0 +1,42 @@
+# train V-JEPA on a subset of Kinetics-400.
+
+data:
+  data_dir: data/kinetics400
+  batch_size: 32
+  frame_stride: 4
+  crop_scale: [0.3, 1.0]
+  crop_aspect_ratio: [0.75, 1.35]
+  num_workers: 0
+
+mask:
+  num_blocks: [8, 2]
+  spatial_scales: [0.15, 0.7]
+  aspect_ratio: [0.75, 1.5]
+  min_keep: 4
+
+model:
+  image_size: 64
+  patch_size: 8
+  num_frames: 16
+  tubelet_size: 2
+  embedding_dimension: 192
+  depth: 6
+  num_heads: 3
+  predictor_dimension: 96
+  predictor_depth: 4
+
+optimization:
+  epochs: 100
+  warmup_fraction: 0.1333 # official paper did 12k warmup of 90k iterations
+  schedule_scale: 1.25
+  start_lr: 2.0e-4
+  lr: 6.25e-4
+  final_lr: 1.0e-6
+  weight_decay: 0.04
+  final_weight_decay: 0.4
+  ema: [0.998, 1.0]
+  max_steps: null
+
+logging:
+  checkpoint: checkpoints/vjepa_kinetics400.pt
+  log_every: 20
