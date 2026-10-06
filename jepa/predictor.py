@@ -12,6 +12,8 @@ class Predictor(nn.Module):
     Input is the encoders output for for the context patches. 
     For every target position, a token representing a masked patch plus its positional embedding is provided.
     i.e. Ask "what is at position p?
+
+    Can be used for I-JEPA (num_time_steps == 1) and V-JEPA (num_time_steps > 1).
     """
 
     position_embedding: torch.Tensor
@@ -23,13 +25,14 @@ class Predictor(nn.Module):
             predictor_dimension: int = 96,
             depth: int = 4,
             num_heads: int = 3,
+            num_time_steps: int = 1,
     ) -> None:
         super().__init__()
 
         self.input_projection = nn.Linear(embedding_dimension, predictor_dimension)
         self.mask_token = nn.Parameter(torch.zeros(1, 1, predictor_dimension))
 
-        position_embedding = encoder.get_2d_pos_embed(predictor_dimension, grid_size)
+        position_embedding = encoder.get_pos_embed(predictor_dimension, grid_size, num_time_steps)
         self.register_buffer("position_embedding", position_embedding.unsqueeze(0))  # [1, N, P]
 
         self.blocks = nn.ModuleList([encoder.Block(predictor_dimension, num_heads) for _ in range(depth)])
