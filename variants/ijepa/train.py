@@ -24,7 +24,7 @@ def train(config: dict[str, Any]) -> IJEPA:
     """train I-JEPA + save checkpoints at each epoch.
     
     Args:
-        args: cli settings.
+        config: config dict loaded from yaml file.
 
     Returns:
         Final trained model.
@@ -134,7 +134,7 @@ def main() -> None:
     """Reads config and launch training."""
     
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("config", help="Path to a YAML config, e.g. variants/ijepa/configs/cifar10.yaml")
+    parser.add_argument("config", help="Path to a YAML config, e.g. variants/ijepa/config/cifar10_IJEPA.yaml")
     
     config = training_utils.load_config(parser.parse_args().config)
     
