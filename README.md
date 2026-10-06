@@ -3,7 +3,7 @@ This repo serves as a playground for me to explore and implement a variety of je
 
 All code handwritten by refering to the papers below and their associated code bases.
 
-## The JEPA Family
+## JEPA Variants
 
 ### 1. I-JEPA — Image JEPA
 **Paper:** [Self-Supervised Learning from Images with a Joint-Embedding Predictive Architecture](https://arxiv.org/abs/2301.08243) (Assran et al., 2023)

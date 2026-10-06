@@ -6,6 +6,8 @@ K = number of patches actually kept (after masking)
 D = embedding dimension
 """
 
+import math
+
 import torch
 from torch import nn
 from torch.nn import functional as F
@@ -33,6 +35,50 @@ def get_2d_pos_embed(embedding_dimension: int, grid_size: int) -> torch.Tensor:
     col_embedding = get_1d_pos_embed(embedding_dimension // 2, cols.flatten())
 
     return torch.cat([row_embedding, col_embedding], dim=1)
+
+def get_3d_pos_embed(embedding_dimension: int, grid_size: int, num_time_steps: int) -> torch.Tensor:
+    """Build positional embeddings for a video patches.
+
+    Each axis gets an equal share of the dimensions.
+    The share is rounded up to an even number, so the result is cut back to embedding_dimension.
+
+    Args:
+        embedding_dimension: numbers per patch.
+        grid_size: patches along one side of a frame.
+        num_time_steps: number of tubelets along time (num_frames // tubelet_size).
+
+    Returns:
+        Embeddings with shape [num_time_steps * grid_size * grid_size, embedding_dimension],
+        ordered by time, then row.
+    """
+
+    times, rows, cols = torch.meshgrid(
+        torch.arange(num_time_steps), torch.arange(grid_size), torch.arange(grid_size), indexing="ij")
+
+    axis_dimension = math.ceil(embedding_dimension / 6) * 2
+    time_embedding = get_1d_pos_embed(axis_dimension, times.flatten())
+    row_embedding = get_1d_pos_embed(axis_dimension, rows.flatten())
+    col_embedding = get_1d_pos_embed(axis_dimension, cols.flatten())
+
+    embedding = torch.cat([time_embedding, row_embedding, col_embedding], dim=1)
+    return embedding[:, :embedding_dimension]
+
+def get_pos_embed(embedding_dimension: int, grid_size: int, num_time_steps: int = 1) -> torch.Tensor:
+    """route to 2d or 3d position embeddings.
+
+    Args:
+        embedding_dimension: numbers per patch.
+        grid_size: patches along one side of an image or frame.
+        num_time_steps: tubelets along time. 1 means an image.
+
+    Returns:
+        Embeddings of shape [N, embedding_dimension].
+    """
+
+    if num_time_steps == 1:
+        return get_2d_pos_embed(embedding_dimension, grid_size)
+
+    return get_3d_pos_embed(embedding_dimension, grid_size, num_time_steps)
 
 def gather_tokens (x: torch.Tensor, idx: torch.Tensor) -> torch.Tensor:
     """Select a subset of tokens for each sample in a batch.
@@ -65,6 +111,24 @@ class PatchEmbedding(nn.Module):
         """Returns patch tokens of shape [B, N, D] for images of shape [B, C, H, W]."""
 
         x = self.projection(x) # [B, D, H/patch_size, W/patch_size]
+        return x.flatten(2).transpose(1,2) # [B, N, D]
+
+class PatchEmbedding3D(nn.Module):
+    """Sample video into tubes then embeds each to a vector."""
+
+    def __init__(self, patch_size: int, tubelet_size: int, input_channels: int, embedding_dimension: int) -> None:
+        super().__init__()
+        self.projection = nn.Conv3d(
+            in_channels=input_channels,
+            out_channels=embedding_dimension,
+            kernel_size=(tubelet_size, patch_size, patch_size),
+            stride=(tubelet_size, patch_size, patch_size),
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Returns tube tokens of shape [B, N, D] for videos of shape [B, C, T, H, W]."""
+
+        x = self.projection(x) # [B, D, T/tubelet_size, H/patch_size, W/patch_size]
         return x.flatten(2).transpose(1,2) # [B, N, D]
 
 class Attention(nn.Module):
@@ -134,15 +198,22 @@ class VisionTransformer(nn.Module):
             embedding_dimension: int = 192,
             depth: int = 6,
             num_heads: int = 3,
+            num_frames: int = 1,
+            tubelet_size: int = 2,
     ) -> None:
         
         super().__init__()
         self.grid_size = image_size // patch_size
-        self.num_patches = self.grid_size ** 2
+        self.num_time_steps = num_frames // tubelet_size if num_frames > 1 else 1
+        self.num_patches = self.num_time_steps * self.grid_size ** 2
         
-        self.patch_embedding = PatchEmbedding(patch_size, input_channels, embedding_dimension)
+        self.patch_embedding: nn.Module
+        if num_frames > 1:
+            self.patch_embedding = PatchEmbedding3D(patch_size, tubelet_size, input_channels, embedding_dimension)
+        else:
+            self.patch_embedding = PatchEmbedding(patch_size, input_channels, embedding_dimension)
         
-        position_embedding = get_2d_pos_embed(embedding_dimension, self.grid_size)
+        position_embedding = get_pos_embed(embedding_dimension, self.grid_size, self.num_time_steps)
         self.register_buffer("position_embedding", position_embedding.unsqueeze(0)) # [1, N, D]
 
         self.blocks = nn.ModuleList([Block(embedding_dimension, num_heads) for _ in range(depth)])
